@@ -2,7 +2,8 @@
 alphabet and conversion methods between string, integer encoded, one-hot
 encoded protein representations.
 
-Note that '_' represents an empty space in our representations.
+Note that '_' represents an empty space in our representations, making a total
+of 21 characters in the protein sequence alphabet.
 """
 
 from typing import List, Tuple
@@ -32,7 +33,7 @@ def seq_to_one_hot(seq: str) -> Tensor:
     accordance with <aa_to_index>.
     """
     int_encoded = seq_to_int_encoded(seq)
-    one_hot = [[float(idx == i) for i in range(len(aa_to_index))]
+    one_hot = [[float(idx == i) for i in range(21)]
                for idx in int_encoded]
     return torch.tensor(one_hot)
 
