@@ -41,12 +41,11 @@ def cbas_maximize(oracle: Oracle, prior: Generator, gen: Generator,
 
         # calculate weights
         weights = prior.gen_prob(X_t, Z_t).div(gen.gen_prob(X_t, Z_t))
-        weights = weights * (1 - oracle.cdf_gamma(X_t, gamma))
+        weights = oracle.prob_desideratum(X_t, gamma) * weights
 
         # As in the original CbAS code, we cut off elements of X_t, that have
         # corresponding weights < cutoff. I convert to numpy since I don't see
         # how to fully write this in PyTorch.
-
         cutoff_idx = torch.where(weights < cutoff)[0].numpy()
 
         X_t_numpy = np.delete(X_t.numpy(), cutoff_idx, axis=0)
