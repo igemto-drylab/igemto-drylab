@@ -15,12 +15,13 @@ def cbas_maximize(oracle: Oracle, prior: Generator, gen: Generator,
                   valid_data: Optional[data.Dataset] = None,
                   verbose: bool = False) -> None:
     """Runs the conditioning by adaptive sampling algorithm, in the context
-    of a maximization design problem.
+    of a maximization design problem. Note that <prior> and <gen> are expected
+    to be generative models of the same type.
     """
 
     # starting with t = 0
     # train the prior
-    weights = [1.] * len(train_data)
+    weights = torch.ones(len(train_data))
     prior.train_self(train_data, weights, epochs, batch_size, lr,
                      valid_data, verbose)
 
@@ -55,6 +56,6 @@ def cbas_maximize(oracle: Oracle, prior: Generator, gen: Generator,
         weights = torch.from_numpy(weights_numpy)
 
         # train generative model
-        gen.train_self(data.TensorDataset(X_t), weights.tolist(),
+        gen.train_self(data.TensorDataset(X_t), weights,
                        epochs, batch_size, lr,
                        valid_data, verbose)

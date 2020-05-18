@@ -131,7 +131,7 @@ class BetaTCVAE(Generator):
         # TODO: otherwise, we calculate the beta-TCVAE loss
         raise NotImplementedError
 
-    def train_self(self, train_data: data.Dataset, weights: List[float],
+    def train_self(self, train_data: data.Dataset, weights: Tensor,
                    epochs: int, batch_size: int, lr: float,
                    valid_data: Optional[data.Dataset] = None,
                    verbose: bool = True) -> None:
@@ -139,8 +139,7 @@ class BetaTCVAE(Generator):
         Train the VAE <vae> on the weighted data set <data_set> under the
         specified parameters.
         """
-
-        sampler = data.WeightedRandomSampler(weights, len(train_data))
+        sampler = data.WeightedRandomSampler(weights.tolist(), len(train_data))
         data_loader = data.DataLoader(train_data, batch_size=batch_size,
                                       sampler=sampler)
         optimizer = Adam(self.parameters(), lr=lr)

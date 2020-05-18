@@ -2,7 +2,7 @@
 order to use the CbAS algorithm.
 """
 
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 
 from torch import Tensor, nn
 from torch.utils import data
@@ -21,7 +21,7 @@ class Generator(nn.Module):
         """
         raise NotImplementedError
 
-    def train_self(self, train_data: data.Dataset, weights: List[float],
+    def train_self(self, train_data: data.Dataset, weights: Tensor,
                    epochs: int, batch_size: int, lr: float,
                    valid_data: Optional[data.Dataset] = None,
                    verbose: bool = True) -> None:
