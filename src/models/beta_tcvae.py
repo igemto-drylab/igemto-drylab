@@ -1,10 +1,14 @@
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import torch
 from torch import Tensor, nn
+from torch.optim import Adam
+from torch.utils import data
+
+from src.models.cbas_models import Generator
 
 
-class BetaTCVAE(nn.Module):
+class BetaTCVAE(Generator):
     """A VAE using a feed-forward network for its encoder, and an RNN for its
     decoder. Depending on the mode, this VAE is a beta-VAE or a beta-TCVAE.
     """
@@ -99,19 +103,20 @@ class BetaTCVAE(nn.Module):
         z = self.reparameterize(mu, log_var)
         return self.decode(z), mu, log_var
 
-    def sample(self, n: int = 1) -> Tensor:
-        """Samples <n> times from this VAE, and returns the newly generated
-        proteins, as a tensor of size (n, seq_len, 21)
+    def sample(self, n: int = 1) -> Tuple[Optional[Tensor], Tensor]:
+        """Samples <n> times from this VAE, and returns a tuple of
+            1. the sampled latent vectors as a tensor of size (n, latent_dim)
+            2. the generated proteins, as a tensor of size (n, seq_len, 21),
+               which were decoded from the latent vectors.
         """
         z = torch.randn(n, self.latent_dim)
-        return self.decode(z)
+        return z, self.decode(z)
 
     def compute_loss(self, x: Tensor, recon: Tensor, mu: Tensor,
                      log_var: Tensor) -> Tensor:
         """Returns the calculated loss between inputs <x> and reconstructions
         <recon>, given means <mu> and log variances <log_var>.
         """
-
         if not self.beta_tcvae:  # standard beta-VAE loss
             x = x.view(-1, len(self.alphabet))
             target = torch.argmax(x, 1)
@@ -124,4 +129,47 @@ class BetaTCVAE(nn.Module):
             return recon_loss(recon, target) + self.beta * kld
 
         # TODO: otherwise, we calculate the beta-TCVAE loss
+        raise NotImplementedError
+
+    def train_self(self, train_data: data.Dataset, weights: List[float],
+                   epochs: int, batch_size: int, lr: float,
+                   valid_data: Optional[data.Dataset] = None,
+                   verbose: bool = True) -> None:
+        """
+        Train the VAE <vae> on the weighted data set <data_set> under the
+        specified parameters.
+        """
+
+        sampler = data.WeightedRandomSampler(weights, len(train_data))
+        data_loader = data.DataLoader(train_data, batch_size=batch_size,
+                                      sampler=sampler)
+        optimizer = Adam(self.parameters(), lr=lr)
+
+        for epoch in range(epochs):
+
+            self.train()
+            losses = []
+
+            for batch in data_loader:
+                recon, mu, log_var = self(batch)
+
+                optimizer.zero_grad()
+                loss = self.compute_loss(batch, recon, mu, log_var)
+                losses.append(loss.item())  # keep track of loss
+
+                loss.backward()
+                optimizer.step()
+
+            # Evaluate quality of VAE on validation set after each epoch.
+            self.eval()
+
+            if verbose:
+                average_loss = sum(losses) / len(losses)
+                report = f"Epoch: {epoch:4}, Train Loss: {average_loss:9.7f}"
+                print(report)
+
+        self.eval()  # return to evaluation mode
+        print("--> Training Complete")
+
+    def gen_prob(self, x_set: Tensor, z_set: Optional[Tensor]) -> Tensor:
         raise NotImplementedError

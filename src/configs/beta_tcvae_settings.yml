@@ -1,0 +1,21 @@
+data:
+  data_path: ../../datasets/petases 5-16-2020.txt
+  train_set_size: 50
+  sample_size: 100
+
+beta_tcvae:
+  encoder_dims: [100, 100, 100]
+  latent_dim: 50
+  gru_hidden_size: 100
+  gru_layer_size: 1
+  beta: 1.0e-05
+  beta_tcvae: False
+
+training:
+  epochs: 2000
+  batch_size: 100
+  lr: 0.0001
+
+
+
+
