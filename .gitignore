@@ -126,3 +126,6 @@ dmypy.json
 
 # Pycharm idea
 .idea/
+
+# personal Python Envs
+PETenv/
