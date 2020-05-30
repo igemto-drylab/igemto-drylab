@@ -129,3 +129,6 @@ dmypy.json
 
 # personal Python Envs
 PETenv/
+
+# Datasets
+datasets/UniRep_Vecs
