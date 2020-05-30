@@ -1,0 +1,1 @@
+The files are npy files that are the unirep vector representations (3*1900), consisting of avg_hidden, final_hidden, final_cell. The filenames are the proteinIDs (UniProtKB ID) 
