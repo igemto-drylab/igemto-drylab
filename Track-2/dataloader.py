@@ -10,13 +10,22 @@ class MeltomeUnirepDataset(Dataset):
         along with another attribute of melting temperature ["meltingTemp"]
 
     '''
-    def __init__(self, URdir, dictPath):
+    def __init__(self, URdir, dictPath, data="train"):
         '''
         Args:
            URdir (string): path to the unirep vector directory
            dictPath (string): path to the protein ID to melting temp dictionary
         '''
-        self.URdir = URdir
+        if data == "train":
+            mod = "train"
+        elif data == "validate":
+            mod = "validate"
+        elif data == "test":
+            mod = "test"
+        else:
+            print("invalid data! you dun goofed")
+
+        self.URdir = os.path.join(URdir, mod)
 
         self.unirepVecs = []
         for _, _, files in os.walk(URdir):
@@ -32,7 +41,7 @@ class MeltomeUnirepDataset(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
         # accessing the .npy file that is at the ith index
-        vec = np.load(os.path.join(self.URdir, self.unirepVecs[idx]))
+        vec = np.load(os.path.join(self.URdir, self.unirepVecs[idx]), allow_pickle=True)
         # getting the melting temperature from a protein ID to melting temp dictionary
         meltingTemp = self.protID2MT[self.unirepVecs[idx].replace(".npy", "")]
         output = {"vec": torch.tensor(vec), "meltingTemp": torch.tensor(meltingTemp)}
