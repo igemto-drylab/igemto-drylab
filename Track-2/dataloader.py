@@ -35,6 +35,6 @@ class MeltomeUnirepDataset(Dataset):
         vec = np.load(os.path.join(self.URdir, self.unirepVecs[idx]))
         # getting the melting temperature from a protein ID to melting temp dictionary
         meltingTemp = self.protID2MT[self.unirepVecs[idx].replace(".npy", "")]
-        output = {"vec": vec, "meltingTemp": meltingTemp}
+        output = {"vec": torch.tensor(vec), "meltingTemp": torch.tensor(meltingTemp)}
 
         return output
