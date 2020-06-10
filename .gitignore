@@ -133,3 +133,7 @@ PETenv/
 # Datasets
 datasets/Meltome_Vecs
 datasets/GFP_Vecs
+Meltome_Vecs
+GFP_Vecs
+Meltome_Vecs.zip
+GFP_Vecs.zip
