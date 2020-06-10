@@ -131,4 +131,5 @@ dmypy.json
 PETenv/
 
 # Datasets
-datasets/UniRep_Vecs
+datasets/Meltome_Vecs
+datasets/GFP_Vecs
