@@ -28,7 +28,7 @@ class MeltomeUnirepDataset(Dataset):
         self.URdir = os.path.join(URdir, mod)
 
         self.unirepVecs = []
-        for _, _, files in os.walk(URdir):
+        for _, _, files in os.walk(self.URdir):
             for name in files:
                 self.unirepVecs.append(name)
 
