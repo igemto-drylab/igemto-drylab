@@ -23,9 +23,9 @@ class ConvNN(nn.Module):
 
     def __init__(self):
         super(ConvNN, self).__init__()
-        self.conv1 = nn.Conv2d(1, 64, 3, padding=1)
-        self.conv2 = nn.Conv1d(64, 16, 5)
-        self.conv3 = nn.Conv1d(16, 1, 3, padding=1)
+        self.conv1 = nn.Conv2d(1, 16, 3, padding=(0, 1))
+        self.conv2 = nn.Conv1d(16, 8, 5)
+        self.conv3 = nn.Conv1d(8, 1, 3, padding=1)
         self.pool2 = nn.MaxPool1d(2, stride=2)
         self.pool3 = nn.MaxPool1d(3, stride=3)
         self.fc1 = nn.Linear(105, 32)
@@ -33,7 +33,9 @@ class ConvNN(nn.Module):
         self.relu = nn.ReLU()
 
     def forward(self, x):
+        x = x.view(-1, 1, 3, 1900)
         x = self.conv1(x)
+        x = x.view(-1, 64, 1900)
         x = self.pool2(x)
         x = self.relu(x)
         x = self.conv2(x)
