@@ -3,7 +3,7 @@ import torch.nn as nn
 
 
 class SimpleNN(nn.Module):
-    '''Simple 2 layer neural net with h_units amount of hidden units
+    '''Simple 2 layer neural net with h_units amount of hidden units, flattens the input 3 layer vector
     '''
     def __init__(self, h_units=64):
         super(SimpleNN, self).__init__()

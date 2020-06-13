@@ -18,8 +18,8 @@ class MeltomeUnirepDataset(Dataset):
         '''
         if data == "train":
             mod = "train"
-        elif data == "validate":
-            mod = "validate"
+        elif data == "val":
+            mod = "val"
         elif data == "test":
             mod = "test"
         else:
