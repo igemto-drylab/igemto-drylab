@@ -1,6 +1,7 @@
 import torch.utils.data
 import transformers
 from torch.utils.tensorboard import SummaryWriter
+from torch.utils.data import DataLoader
 
 from src.track1.seq_dataset import get_dataset_and_collater
 
@@ -48,7 +49,6 @@ training_args = transformers.TrainingArguments(
     output_dir="models/gpt2/",
     do_train=True,
     do_eval=True,
-    do_predict=True,
     evaluate_during_training=True,
     per_device_train_batch_size=32,
     per_device_eval_batch_size=32,
@@ -64,6 +64,7 @@ trainer = transformers.Trainer(
     data_collator=data_collator,
     train_dataset=train_set,
     eval_dataset=valid_set,
+    prediction_loss_only=True,
     tb_writer=writer
 )
 
