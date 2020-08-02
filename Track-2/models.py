@@ -1,9 +1,8 @@
 import torch
 import torch.nn as nn
 
-
 class SimpleNN(nn.Module):
-    '''Simple 2 layer neural net with h_units amount of hidden units, flattens the input 3 layer vector
+    '''Simple 1 layer neural net with h_units amount of hidden units, flattens the input 3 layer vector
     '''
     def __init__(self, h_units=64, fusion=True, dropout=0.5):
         super(SimpleNN, self).__init__()
@@ -23,6 +22,37 @@ class SimpleNN(nn.Module):
         x = self.relu(x)
         x = self.dropout(x)
         x = self.fc2(x)
+        return x
+
+class NormSimpleNN(nn.Module):
+
+    def __init__(self, h_units=64, fusion=True, dropout=0.5, act="sig"):
+        super(NormSimpleNN, self).__init__()
+        self.fusion = fusion
+        if self.fusion:
+            self.fc1 = nn.Linear(1900*3, h_units)
+        else:
+            self.fc1 = nn.Linear(1900, h_units)
+        self.fc2 = nn.Linear(h_units, 1)
+        self.relu = nn.ReLU()
+        #self.dropout = nn.Dropout(dropout)
+        self.bn1 = nn.BatchNorm1d(h_units)
+        self.bn2 = nn.BatchNorm1d(1)
+        if act == "sig":
+            self.act = nn.Sigmoid()
+        elif act == "tanh":
+            self.act = nn.Tanh()
+
+    def forward(self, x):
+        if self.fusion:
+            x = x.view(-1, 1900*3)
+        x = self.fc1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        #x = self.dropout(x)
+        x = self.fc2(x)
+        x = self.bn2(x)
+        x = self.act(x)
         return x
 
 class ConvNN(nn.Module):
