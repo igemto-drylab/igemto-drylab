@@ -16,10 +16,6 @@ class GPT2(pl.LightningModule):
     def add_model_specific_args(parent_parser):
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
 
-        # data arguments
-        parser.add_argument('--split_ratio', nargs='+', type=float,
-                            default=[0.9, 0.1])
-
         # model arguments
         parser.add_argument('--n_embd', type=int, default=20)
         parser.add_argument('--n_layer', type=int, default=4)

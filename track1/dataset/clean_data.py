@@ -8,15 +8,15 @@ import matplotlib.pyplot as plt
 
 SEED = 777
 SPLIT_RATIO = [0.8, 0.1, 0.1]
-DATA_PATHS = ["ec_3_1_1_seqs.csv", "petases.csv"]
+DATA_PATHS = ["ec_3_1_1.csv", "petases.csv"]
 
 random.seed(SEED)  # lucky 7 : )
 
 for path in DATA_PATHS:
 
-    train_path = os.path.basename(path + "_cleaned_train.txt")
-    val_path = os.path.basename(path + "_cleaned_val.txt")
-    test_path = os.path.basename(path + "_cleaned_test.txt")
+    train_path = os.path.splitext(path)[0] + "_cleaned_train.txt"
+    val_path = os.path.splitext(path)[0] + "_cleaned_val.txt"
+    test_path = os.path.splitext(path)[0] + "_cleaned_test.txt"
 
     cleaned_data = set()
 
