@@ -51,3 +51,16 @@ class MeltomeUnirepDataset(Dataset):
         output = {"vec": torch.tensor(vec), "meltingTemp": torch.tensor(meltingTemp)}
 
         return output
+    
+    def normalize(self, lbound, ubound):
+        melting_temps = [self.protID2MT[encoding.replace(".npy", "")] for encoding in self.unirepVecs]
+        max_val = max(melting_temps)
+        min_val = min(melting_temps)
+        range_val = max_val - min_val
+        norm_range = ubound - lbound
+
+        for encoding in self.unirepVecs:
+            curr_val = self.protID2MT[encoding.replace(".npy", "")]
+            self.protID2MT[encoding.replace(".npy", "")] = norm_range * (curr_val - min_val) / (range_val) + lbound
+        
+        return max_val, min_val
