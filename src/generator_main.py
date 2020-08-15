@@ -3,7 +3,7 @@ import torch
 
 from src.utils.seq_dataset import AA_TO_IDX, IDX_TO_AA
 
-PATH = "results/epoch=93-val_loss=0.85.ckpt"
+PATH = "../results/gpt2-finetune/epoch=58-val_loss=0.6654.ckpt"
 
 gpt2 = GPT2.load_from_checkpoint(PATH)
 
@@ -15,8 +15,8 @@ for _ in range(N):
 
     output = gpt2.generate(
         input_ids=input_ids,
-        min_length=270,
-        max_length=300,
+        min_length=260,
+        max_length=310,
         do_samples=True,
         early_stopping=True,
         num_beams=5,

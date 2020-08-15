@@ -115,7 +115,7 @@ class GPT2(pl.LightningModule):
         return {'val_loss': val_loss_mean, 'log': logger_logs}
 
     def configure_optimizers(self):
-        step_size = 3 * 96000 / self.hparams.batch_size
+        step_size = 3 * 92000 / self.hparams.batch_size
         self.hparams.step_size_up = step_size
 
         optimizer = torch.optim.AdamW(self.parameters(), lr=self.hparams.lr)

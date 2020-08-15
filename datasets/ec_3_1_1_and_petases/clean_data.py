@@ -25,7 +25,7 @@ for path in DATA_PATHS:
 
         for row in reader:
             seq = row['sequence']
-            if (100 <= len(seq) <= 325) and ('X' not in seq):
+            if (100 <= len(seq) <= 310) and ('X' not in seq):
                 cleaned_data.add(seq)
 
     print(f"{len(cleaned_data)} Sequences")

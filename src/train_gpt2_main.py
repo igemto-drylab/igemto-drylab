@@ -24,14 +24,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    # make save directory
-    if not os.path.isdir(args.default_root_dir):
-        os.makedirs(args.default_root_dir)
-
-    # seed everything
-    if args.random_seed is not None:
-        pl.trainer.seed_everything(args.random_seed)
-        args.deterministic = True
 
     logger = pl_loggers.TensorBoardLogger(save_dir=args.default_root_dir)
 
@@ -47,6 +39,17 @@ if __name__ == '__main__':
                                            verbose=True,
                                            save_top_k=3,
                                            mode='min')
+
+    if args.resume_from_checkpoint is None:
+
+        # make save directory
+        if not os.path.isdir(args.default_root_dir):
+            os.makedirs(args.default_root_dir)
+
+        # seed everything
+        if args.random_seed is not None:
+            pl.trainer.seed_everything(args.random_seed)
+            args.deterministic = True
 
     trainer = pl.Trainer.from_argparse_args(
         args,
