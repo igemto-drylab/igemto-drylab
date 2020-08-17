@@ -217,7 +217,7 @@ if __name__ == '__main__':
                                              n_warmup_steps=20,
                                              interval_steps=5)
 
-    study = optuna.create_study(storage='sqlite:///gpt2_optimize_sizes.db',
+    study = optuna.create_study(storage='sqlite:///gpt2_study_sizes.db',
                                 sampler=sampler,
                                 pruner=pruner,
                                 study_name='gpt2_optimize_sizes',

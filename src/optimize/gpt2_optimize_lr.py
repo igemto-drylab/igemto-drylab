@@ -1,3 +1,4 @@
+import math
 import os
 
 import optuna
@@ -7,13 +8,12 @@ import transformers
 from optuna.integration import PyTorchLightningPruningCallback
 from pytorch_lightning.core.decorators import auto_move_data
 from torch.nn.utils.rnn import pad_sequence
+from torch.optim.lr_scheduler import CyclicLR, OneCycleLR
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 
 SEED = 777
 pl.seed_everything(SEED)
-# ^ did not set seed for Optuna TPESampler,
-# so results are not reproducible unfortunately
 
 EPOCHS = 40
 SEQ_LEN = 310 + 2
@@ -70,12 +70,12 @@ class GPT2(pl.LightningModule):
     def __init__(self, trial):
         super().__init__()
 
-        # hyperparameters obtained from gpt2_optimize_sizes
-        n_embd = 232
+        n_embd = 196
         n_head = 6
-        n_layer = 6
-        dropout = 0.21649723315268476
-        self.lr = 0.000411457312871047
+        n_layer = 5
+        dropout = 0.23684473591088903
+
+        self.trial = trial
 
         # make n_embd divisible
         n_embd = n_head * round(n_embd / n_head)
@@ -103,11 +103,11 @@ class GPT2(pl.LightningModule):
         return self.gpt2(input_ids=x, labels=x)
 
     def setup(self, stage):
-        print("here")
+
         # get path of dataset directory
         cwd = os.path.abspath(os.getcwd())
         dataset_dir = os.path.abspath(
-            os.path.join(cwd, "../../datasets/ec_3_1_1_and_petases")
+            os.path.join(cwd, "datasets/ec_3_1_1_and_petases")
         )
 
         paths = {'train': [], 'val': [], 'test': []}
@@ -157,8 +157,66 @@ class GPT2(pl.LightningModule):
         return {'val_loss': val_loss_mean, 'log': logger_logs}
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-        return optimizer
+
+        trial = self.trial
+
+        scheduler_type = trial.suggest_categorical(
+            'scheduler_type',
+            ['None', 'CyclicLR', 'OneCycleLR']
+        )
+        optimizer_type = trial.suggest_categorical(
+            'optimizer_type',
+            ['SGD', 'Adam', 'AdamW']
+        )
+
+        if scheduler_type == 'None':
+            lr = trial.suggest_loguniform('lr', 1e-5, 1e-1)
+            max_lr = 0.0014804104114356487  # dummy number
+        else:
+            lr = 0.0014804104114356487  # dummy number
+            max_lr = trial.suggest_loguniform('max_lr', 1e-3, 1e-1)
+
+        use_weight_decay = trial.suggest_categorical('use_weight_decay',
+                                                     [True, False])
+        if use_weight_decay:
+            weight_decay = trial.suggest_loguniform('weight_decay', 1e-5, 1e-2)
+        else:
+            weight_decay = 0
+
+        if optimizer_type == 'Adam':
+            optimizer = torch.optim.Adam(self.parameters(),
+                                         lr=lr,
+                                         weight_decay=weight_decay)
+        elif optimizer_type == 'AdamW':
+            optimizer = torch.optim.AdamW(self.parameters(),
+                                          lr=lr,
+                                          weight_decay=weight_decay)
+        else:
+            momentum = trial.suggest_float('momentum', 0.0, 1.0)
+
+            optimizer = torch.optim.SGD(self.parameters(),
+                                        lr=lr,
+                                        momentum=momentum,
+                                        weight_decay=weight_decay)
+
+        if scheduler_type == 'CyclicLR':
+            scheduler = CyclicLR(optimizer,
+                                 base_lr=0.00003162277,
+                                 max_lr=max_lr,
+                                 step_size_up=(3 * round(761 / BATCH_SIZE)),
+                                 cycle_momentum=(optimizer_type == 'SGD'))
+            return [optimizer], [scheduler]
+
+        elif scheduler_type == 'OneCycleLR':
+            scheduler = OneCycleLR(optimizer,
+                                   max_lr=max_lr,
+                                   epochs=EPOCHS,
+                                   steps_per_epoch=math.ceil(761 / BATCH_SIZE),
+                                   cycle_momentum=(optimizer_type == 'SGD'))
+            return [optimizer], [scheduler]
+
+        else:
+            return optimizer
 
 
 # Helper Methods
@@ -183,7 +241,12 @@ class MetricsCallback(pl.Callback):
 
 
 def objective(trial):
-    early_stopping = PyTorchLightningPruningCallback(trial,
+    early_stopping = pl.callbacks.EarlyStopping(monitor='val_loss',
+                                                min_delta=0.0001,
+                                                patience=6,
+                                                verbose=True,
+                                                mode='min')
+    prune_callback = PyTorchLightningPruningCallback(trial,
                                                      monitor="val_loss")
     metrics_callback = MetricsCallback()
 
@@ -193,11 +256,12 @@ def objective(trial):
         max_epochs=EPOCHS,
         early_stop_callback=early_stopping,
         checkpoint_callback=False,
-        callbacks=[metrics_callback],
+        callbacks=[prune_callback, metrics_callback],
         limit_test_batches=LIMIT_TEST_BATCHES,
         limit_val_batches=LIMIT_VAL_BATCHES,
         gradient_clip_val=1.0,
-        gpus=(1 if torch.cuda.is_available() else None)
+        gpus=(1 if torch.cuda.is_available() else None),
+        deterministic=True
     )
 
     model = GPT2(trial)
@@ -208,19 +272,37 @@ def objective(trial):
 
 if __name__ == '__main__':
 
-    pruner = optuna.pruners.MedianPruner(n_warmup_steps=7)
+    sampler = optuna.samplers.TPESampler(seed=SEED)
+    pruner = optuna.pruners.PercentilePruner(percentile=75,
+                                             n_startup_trials=10,
+                                             n_warmup_steps=20,
+                                             interval_steps=5)
 
-    # sorry for the bad study name, I forgot to set it earlier : (
-    study = optuna.create_study(
-        study_name='no-name-e126e8ed-28fb-4e5b-8d55-8a0456dc1f72',
-        direction='minimize',
-        storage='sqlite:///gpt2_optimize_sizes.db',
-        load_if_exists=True,
-        pruner=pruner
-    )
+    study = optuna.create_study(storage='sqlite:///gpt2_study_lr.db',
+                                sampler=sampler,
+                                pruner=pruner,
+                                study_name='gpt2_optimize_lr',
+                                direction='minimize',
+                                load_if_exists=True)
+    df = study.trials_dataframe(attrs=('number', 'value', 'params', 'state'))
+    print(df)
 
+    # Interested in trying the two below
+    # study.enqueue_trial({
+    #     'scheduler_type': 'CyclicLR',
+    #     'optimizer_type': 'Adam',
+    #     'use_weight_decay': False,
+    #     'max_lr': 0.031622
+    # })
+    # study.enqueue_trial({
+    #     'scheduler_type': 'OneCycleLR',
+    #     'optimizer_type': 'Adam',
+    #     'use_weight_decay': False,
+    #     'max_lr': 0.031622
+    # })
+    #
     # study.optimize(objective,
-    #                n_trials=100,
+    #                n_trials=200,
     #                timeout=86400,
     #                catch=(RuntimeError,))
 
