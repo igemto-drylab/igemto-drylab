@@ -199,7 +199,8 @@ def objective(trial):
         limit_test_batches=LIMIT_TEST_BATCHES,
         limit_val_batches=LIMIT_VAL_BATCHES,
         gradient_clip_val=1.0,
-        gpus=(1 if torch.cuda.is_available() else None)
+        gpus=(1 if torch.cuda.is_available() else None),
+        deterministic=True  # forgot to set flag in uploaded run (sorry)
     )
 
     model = GPT2(trial)
