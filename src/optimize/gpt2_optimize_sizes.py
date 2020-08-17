@@ -12,8 +12,6 @@ from torch.utils.data import Dataset
 
 SEED = 777
 pl.seed_everything(SEED)
-# ^ did not set seed for Optuna TPESampler,
-# so results are not reproducible unfortunately
 
 EPOCHS = 40
 SEQ_LEN = 310 + 2
@@ -102,7 +100,7 @@ class GPT2(pl.LightningModule):
         return self.gpt2(input_ids=x, labels=x)
 
     def setup(self, stage):
-        print("here")
+
         # get path of dataset directory
         cwd = os.path.abspath(os.getcwd())
         dataset_dir = os.path.abspath(
@@ -182,7 +180,12 @@ class MetricsCallback(pl.Callback):
 
 
 def objective(trial):
-    early_stopping = PyTorchLightningPruningCallback(trial,
+    early_stopping = pl.callbacks.EarlyStopping(monitor='val_loss',
+                                                min_delta=0.0001,
+                                                patience=4,
+                                                verbose=True,
+                                                mode='min')
+    prune_callback = PyTorchLightningPruningCallback(trial,
                                                      monitor="val_loss")
     metrics_callback = MetricsCallback()
 
@@ -192,7 +195,7 @@ def objective(trial):
         max_epochs=EPOCHS,
         early_stop_callback=early_stopping,
         checkpoint_callback=False,
-        callbacks=[metrics_callback],
+        callbacks=[prune_callback, metrics_callback],
         limit_test_batches=LIMIT_TEST_BATCHES,
         limit_val_batches=LIMIT_VAL_BATCHES,
         gradient_clip_val=1.0,
@@ -207,19 +210,29 @@ def objective(trial):
 
 if __name__ == '__main__':
 
-    pruner = optuna.pruners.MedianPruner(n_warmup_steps=7)
+    sampler = optuna.samplers.TPESampler(seed=SEED)
+    pruner = optuna.pruners.PercentilePruner(percentile=75,
+                                             n_startup_trials=10,
+                                             n_warmup_steps=20,
+                                             interval_steps=5)
 
-    # sorry for the bad study name, I forgot to set it earlier : (
-    study = optuna.create_study(
-        study_name='no-name-e126e8ed-28fb-4e5b-8d55-8a0456dc1f72',
-        direction='minimize',
-        storage='sqlite:///gpt2_sizes_study.db',
-        load_if_exists=True,
-        pruner=pruner
-    )
+    study = optuna.create_study(storage='sqlite:///gpt2_optimize_sizes.db',
+                                sampler=sampler,
+                                pruner=pruner,
+                                study_name='gpt2_optimize_sizes',
+                                direction='minimize',
+                                load_if_exists=True)
+    df = study.trials_dataframe(attrs=('number', 'value', 'params', 'state'))
+    print(df)
+
+    # study.enqueue_trial(  # best trial found in a previous buggy run
+    #      {'n_embd': 232, 'n_head': 6, 'n_layer': 6,
+    #      'dropout': 0.21649723315268476,
+    #      'lr': 0.000411457312871047}
+    # )
 
     # study.optimize(objective,
-    #                n_trials=100,
+    #                n_trials=200,
     #                timeout=86400,
     #                catch=(RuntimeError,))
 
