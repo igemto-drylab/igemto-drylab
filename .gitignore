@@ -137,6 +137,4 @@ Meltome_Vecs
 GFP_Vecs
 Meltome_Vecs.zip
 GFP_Vecs.zip
-results-gpt2-ver-1-google-collab
-*.zip
-*.ckpt
+gpt2-large

@@ -8,9 +8,12 @@ import matplotlib.pyplot as plt
 
 SEED = 777  # lucky 7s : )
 SPLIT_RATIO = [0.8, 0.1, 0.1]
-DATA_PATHS = ["ec_3_1_1.csv", "petases.csv"]
+DATA_PATHS = ["petases.csv", "ec_3_1_1.csv"]
 
 random.seed(SEED)
+
+petases = set()
+crossover = set()
 
 for path in DATA_PATHS:
 
@@ -25,8 +28,17 @@ for path in DATA_PATHS:
 
         for row in reader:
             seq = row['sequence']
+
+            # prevent cross-over from datasets
+            if (path != "petases.csv") and (seq in petases):
+                crossover.add(seq)
+                continue
+
             if (100 <= len(seq) <= 310) and ('X' not in seq):
                 cleaned_data.add(seq)
+
+    if path == "petases.csv":
+        petases = set(cleaned_data)
 
     print(f"{len(cleaned_data)} Sequences")
     cleaned_data = list(cleaned_data)
@@ -57,3 +69,5 @@ for path in DATA_PATHS:
     with open(test_path, 'w', newline='') as file:
         for row in test_data:
             file.write(row + "\n")
+
+print(f"{len(crossover)} shared sequences between datasets.")
