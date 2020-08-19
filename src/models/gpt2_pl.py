@@ -1,6 +1,6 @@
+import os
 from argparse import ArgumentParser
 
-import os
 import pytorch_lightning as pl
 import torch
 import transformers
@@ -18,16 +18,17 @@ class GPT2(pl.LightningModule):
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
 
         # model arguments
-        parser.add_argument('--seq_len', type=int, default=(325 + 2))
-        parser.add_argument('--n_embd', type=int, default=200)
-        parser.add_argument('--n_layer', type=int, default=10)
-        parser.add_argument('--n_head', type=int, default=10)
+        parser.add_argument('--seq_len', type=int, default=(310 + 2))
+        parser.add_argument('--n_embd', type=int, default=198)
+        parser.add_argument('--n_head', type=int, default=6)
+        parser.add_argument('--n_layer', type=int, default=5)
+        parser.add_argument('--dropout', type=float, default=0.2368447359)
 
         # training arguments
         parser.add_argument('--batch_size', type=int, default=128)
-        parser.add_argument('--lr', type=float, default=0.0001)
-        parser.add_argument('--base_lr', type=float, default=0.00001)
-        parser.add_argument('--max_lr', type=float, default=0.035)
+        parser.add_argument('--lr', type=float, default=0.0014804104)
+        parser.add_argument('--base_lr', type=float, default=0.00003162277)
+        parser.add_argument('--max_lr', type=float, default=0.0022894)
 
         return parser
 
@@ -44,6 +45,9 @@ class GPT2(pl.LightningModule):
             n_embd=self.hparams.n_embd,
             n_layer=self.hparams.n_layer,
             n_head=self.hparams.n_head,
+            resid_pdrop=self.hparams.dropout,
+            embd_pdrop=self.hparams.dropout,
+            attn_pdrop=self.hparams.dropout
         )
         self.gpt2 = transformers.GPT2LMHeadModel(config=config)
 
@@ -115,10 +119,10 @@ class GPT2(pl.LightningModule):
         return {'val_loss': val_loss_mean, 'log': logger_logs}
 
     def configure_optimizers(self):
-        step_size = 3 * 92000 / self.hparams.batch_size
+        step_size = 3 * len(self.train_dataset) / self.hparams.batch_size
         self.hparams.step_size_up = step_size
 
-        optimizer = torch.optim.AdamW(self.parameters(), lr=self.hparams.lr)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
         scheduler = CyclicLR(optimizer=optimizer,
                              base_lr=self.hparams.base_lr,
                              max_lr=self.hparams.max_lr,
