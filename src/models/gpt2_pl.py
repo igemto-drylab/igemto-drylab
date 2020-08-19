@@ -96,6 +96,13 @@ class GPT2(pl.LightningModule):
                             collate_fn=pad_batch)
         return loader
 
+    def test_dataloader(self):
+        loader = DataLoader(self.test_dataset,
+                            batch_size=self.hparams.batch_size,
+                            num_workers=self.hparams.num_workers,
+                            collate_fn=pad_batch)
+        return loader
+
     def training_step(self, batch, batch_idx):
         loss = self(batch)[0]
 
@@ -106,17 +113,37 @@ class GPT2(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         loss = self(batch)[0]
-
-        logger_logs = {
-            'val_loss': loss,
-        }
-        return {'val_loss': loss, 'log': logger_logs}
+        
+        return {'val_loss': loss}
 
     def validation_epoch_end(self, outputs):
         val_loss_mean = torch.stack([x['val_loss'] for x in outputs]).mean()
         logger_logs = mean_of_logs(outputs)
 
-        return {'val_loss': val_loss_mean, 'log': logger_logs}
+        tqdm_dict = {'val_loss': val_loss_mean}
+
+        results = {
+            'progress_bar': tqdm_dict,
+            'log': logger_logs
+        }
+        return results
+
+    def test_step(self, batch, batch_idx):
+        loss = self(batch)[0]
+
+        return {'test_loss': loss}
+
+    def test_epoch_end(self, outputs):
+        test_loss_mean = torch.stack([x['test_loss'] for x in outputs]).mean()
+        logger_logs = mean_of_logs(outputs)
+
+        tqdm_dict = {'test_loss': test_loss_mean}
+
+        results = {
+            'progress_bar': tqdm_dict,
+            'log': logger_logs
+        }
+        return results
 
     def configure_optimizers(self):
         step_size = 3 * len(self.train_dataset) / self.hparams.batch_size
